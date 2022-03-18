@@ -1,0 +1,314 @@
+\documentclass[12pt]{mwart}
+\usepackage[utf8]{inputenc}
+\usepackage[T1,plmath]{polski}
+\usepackage{amssymb,amsfonts,amsmath}
+\usepackage{indentfirst}
+\usepackage{lmodern}
+\usepackage[colorlinks=true,linkcolor=blue]{hyperref}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\author{Olimpia Pozauć, Oliwia Krzemińska}
+\title{Sprawozdanie 2\\ grupa 12}
+\date{\today}
+
+<<include=FALSE>>=
+pdf.options(encoding='CP1250')
+library(BSDA)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(latex2exp)
+knitr::opts_chunk$set(fig.width=7, fig.height=5,
+                      fig.align='center', fig.path='Figs/',
+                      echo=F, warning=F, message=F)
+color1 <- "#ED79A9"
+color2 <- "#32BDD9"
+color3 <- "#963E63"
+color4 <- "#5A919C"
+color5 <- "#C2B648"
+
+colors <- c("z"=color1,"t-Studenta"=color2, "Wilcoxona"=color3)
+mu<-seq(1, 5, length.out=100)
+@
+
+\begin{document}
+\maketitle
+
+\tableofcontents
+\newpage
+\section{Wprowadzenie}
+Celem sprawozdania jest analiza trzech testów statystycznych i sprawdzenie przypadków, w których założenia testów nie zostały spełnione. Przyjrzymy się sytuacjom, w których dane będą pochodzić z rozkładu normalnego oraz wykładniczego. Za każdym razem postaramy się  ustalić, który spośród testów statystycznych jest jednoznacznie najmocniejszy na poziomie istotności $\alpha$.W sprawozdaniu będziemy rozważać testy na poziomie istotności $\alpha = 0.05$ do testowania:
+\begin{itemize}
+\item{$H_0:\mu=3$, przeciwko}
+\item{$H_1:\mu<3.$}
+\end{itemize}
+Będziemy wykonywać sprawdzenie tej hipotezy, stosując wprost trzy testy:
+\begin{enumerate}
+\item{test z (przy założeniu $\sigma=2$),}
+\item{test t-Studenta,}
+\item{test rang znakowanych Wilcoxona.}
+\end{enumerate}
+\subsection{Definicje i oznaczenia}
+\begin{itemize}
+\item{$\mathbf{H_0: \Theta \in \Theta_0}$ - Hipoteza zerowa.}
+\item{$\mathbf{H_1: \Theta \in \Theta_1}$ - Hipoteza alternatywna.}
+\item{\textbf{Funkcja mocy testu}} \\
+$\beta_{\varphi}:\Theta \rightarrow [0,1]$, to
+$$\beta_{\varphi}(\Theta)=\mathbb{E}_{\Theta}[\varphi(X)],$$
+gdzie $\mathbb{E}$ to wartość oczekiwana, $\varphi$ to funkcja mocy testu, a $X$ to próba losowa. Dla testów niezrandomizowanych, czyli takich, dla których $\varphi$ przyjmuje jedynie wartośći 0 i 1, możemy zapisać
+$$\beta_{\varphi}(\Theta)=P_{\Theta}[\varphi(X)=1],$$
+czyli jest to prawdopodobieństwo odrzucenia hipotezy zerowej.
+\item{\textbf{Moc testu}} - wartość funkcji mocy w punktach $\Theta \in \Theta_1$ przy alternatywie $\Theta$.
+\item{\textbf{Rozmiar testu}} - kres górny odrzucenia prawdopodobieństwa, gdy prawdziwy parametr należy do $\Theta_0$. Jest górnym ograniczeniem popełnienia błędu I rodzaju, czyli odrzucenia prawdziwej hipotezy zerowej i zapisujemy go jako
+$$\beta_{\varphi}=\underset{\theta \in \Theta _0}{\sup}\beta_{\varphi}(\theta).$$
+\item{\textbf{Poziom istotności testu}} - ograniczenie rozmiaru testu przez $\alpha \in (0,1)$.
+\item{\textbf{Test jednostajnie najmocniejszy na poziomie istotności} $\mathbf{\alpha}$} - test na poziomie istotności $\alpha$, którego wartość funkcji mocy
+jest przynajmniej taka sama jak wartość funkcji mocy innych testów na poziomie istotności $\alpha$.
+\end{itemize}
+\subsection{Opis wykorzystanych testów}
+\subsubsection{Test z}
+Test z to test statystyczny, dla którego rozkład statystyki testowej przy hipotezie zerowej może być przybliżony rozkładem normalnym. Testy z badają średnią rozkładu oraz dla każdego poziomu istotności w przedziale ufności mają jedną wartość krytyczną. Dla próby $ (X_1,X_2,..,X_n) \sim \mathcal{N}(\mu,\sigma^2)$, gdzie $\sigma$ jest znana. Możemy zapisać ogólne postacie testów: \\
+\begin{itemize}
+\item{$H_0:\mu = \mu_0$}
+$$\overline{X} \sim \mathcal{N}(\mu_0, \sigma^2),$$
+\item{$H_1: \mu<\mu_0$}
+\begin{align*}
+\varphi(x) = \begin{cases}
+1, \mbox{dla }  \overline{X} \le c, \\
+0, \mbox{dla } \overline{X}>c,
+\end{cases}
+\end{align*}
+gdzie $c \in \mathbb{R}$. Poziom istotności $\alpha$ wygląda następująco :
+$$\alpha = P_{\mu_0}(\sqrt{n}\cdot \frac{\overline{X} - \mu_{0}}{\sigma}<\sqrt{n}\cdot \frac{c-\mu_0}{\sigma}).$$
+Natomiast funkcja mocy prezentuje się:
+$$\beta_{\varphi}(\mu)=P_{\mu}(\overline{X} \le \mu_0 - z_{1-\alpha} \cdot \frac{\sigma}{\sqrt{n}}).$$
+\end{itemize}
+\subsubsection{Test t-Studenta}
+Test t jest dowolnym testem hipotezy statystycznej, w którym statystyka testowa jest zgodna z rozkładem t-Studenta przy hipotezie zerowej. Możemy zapisać:
+$$ t=\sqrt{n}\frac{\overline{X}-\mu_0}{S}\sim \tau (n-1),$$
+gdzie 
+$$ S=\sqrt{\frac{1}{n-1}\sum_{i=1}^n (X_i-\overline{X})^2}.$$
+Zapiszemy teraz ogólną postać testu oraz poziom istotności $\alpha$ zakładając przy tym, że $c\in \mathbb{R}$:
+\begin{itemize}
+\item{$H_0 :\mu = \mu_0 \mbox{ oraz } H_1 : \mu < \mu_0:$}
+\end{itemize}
+$$\varphi(x) = \begin{cases}
+1, \mbox{dla }  \sqrt{n}\frac{\overline{X}-\mu_0}{S} \ge t_{n-1}(1-\alpha), \\
+0, \mbox{dla } \sqrt{n}\frac{\overline{X}-\mu_0}{S}> t_{n-1}(1-\alpha).
+\end{cases}$$ \\
+Poziom istotności możemy zapisać jako:
+$$\alpha = P_{\mu_0}(\varphi(X)=1)=P_{\mu_0}(t\ge c)=1-P_{\mu_0(t \le c)}.$$ \\
+Natomiast funkcja mocy ma postać:
+$$\beta_{\varphi}(X)=P_{\mu}(\sqrt{n}\frac{\overline{X}-\mu_0}{S} \le t_{n-1}(\alpha)) = 1-F_{n-1;\sqrt{n}\frac{\mu-\mu_0}{\sigma}}(t_{n-1}(1-\alpha)).$$
+\subsubsection{Test rang znakowanych Wilcoxona}
+Testem rangowym nazywamy test, w którym statystyka testowa jest konstruowana w oparciu o rangi. Test Wilcoxona jest często stosowanym nieparametrycznym odpowiednikiem testu t-Studenta. W założeniu nie służy on w ogólności do testowania średniej, jednak możemy go używać, kiedy mamy dozynienia z rozkładami symetrycznymi, w których mediana jest równa. 
+
+
+\section{Zadanie 1}
+
+\subsection{Treść}
+
+Rozważmy próbę $(X_1, ... , X_{100}) $ z rozkładu normalnego $\mathcal{N} \sim (\mu, 2^2)$. Korzystając z symulacji Monte Carlo wykonaj wykres funkcji mocy w zależności od $\mu$ na przedziale $(1, 5)$ dla wszystkich trzech testów. Czy istnieje test jednostajnie najmocniejszy spośród nich?
+
+\subsection{Przedstawienie funkcji mocy na wykresie}
+
+Na wykresie przedstawimy funkcję mocy testu dla trzech testów: testu z (przy założeniu $\sigma=2$), testu t-Studenta oraz testu rang znakowanych Wilcoxona w zależności od $\mu$ na przedziale $(1,5)$ dla danych z rozkładu normalnego $\mathcal{N} \sim (\mu, 2^2)$.
+
+<<echo=FALSE, cache=TRUE>>=
+z_test <- function(mu,sigma) {
+  mean(sapply(1:10^4, function(...) {
+    X <- rnorm(100, mu, sigma)
+      z.test(X, mu=3, sigma.x=2, alternative = "less")$p.value < 0.05
+    }))
+}
+z1<-sapply(mu,function(x){z_test(x,2)})
+
+t_test <- function(mu,sigma) {
+  mean(sapply(1:10^4, function(...) {
+    X <- rnorm(100, mu, sigma)
+    t.test(X, mu=3,alternative = "less")$p.value < 0.05
+  }))
+}
+t1<-sapply(mu,function(x){t_test(x,2)})
+
+wilcox_test <- function(mu,sigma) {
+  mean(sapply(1:10^4, function(...) {
+    X <- rnorm(100, mu, sigma)
+    wilcox.test(X, mu=3,alternative="less")$p.value < 0.05
+  }))
+}
+w1<-sapply(mu,function(x){wilcox_test(x,2)})
+
+df1 <- data.frame(z=z1,t=t1,wilcoxon=w1, mu=mu)
+write.csv(df1, file="df1.csv") 
+
+@
+
+<<fig.cap="\\label{fig:power1}Wykres funkcji mocy testów w zależności od $\\mu$ dla próby z rozkładu $\\mathcal{N} \\sim \\left(\\mu, 2^2\\right)$ o długości $n=100$ przy $10^4$ krokach Monte Carlo dla $H_0: \\mu = 3$ przeciwko $H_1: \\mu < 3$.">>=
+ggplot(df1)  +
+  geom_line(aes(x=mu,y=z, color="z"), size=0.72) +
+  geom_line(aes(x=mu,y=t, color="t-Studenta"), size=0.72) +
+  geom_line(aes(x=mu,y=wilcoxon, color="Wilcoxona"), size=0.72) +
+  labs(color="Test", x=TeX("$\\mu$"), y="moc") +
+  ggtitle(TeX("Wykres funkcji mocy w zależności od $\\mu$ na przedziale (1,5).")) +
+  geom_vline(xintercept=3, color=color4, size=0.72) +
+  geom_hline(yintercept=0.05, color=color5, size=0.72) +
+  scale_color_manual(values=colors) 
+@
+
+\subsection{Wnioski}
+
+Na podztawie wykresu \ref{fig:power1} możemy zauważyć, że wszystkie trzy testy, czyli test z, test t-Studenta oraz test Wilcoxona są nieobciążone, ponieważ dla hipotezy alternatywnej $H_1: \mu < 3$ moc testu jest większa od zadanego poziomu istotności $\alpha=0.05$. 
+
+W naszym przypadku jest jeden punkt hipotezy zerowej $H_0=3$. Wartość mocy wszystkich testów dla tego punktu jest równa w przybliżeniu $0.05$, zatem możemy wnioskować, że dla danych przedstwionych na wykresie \ref{fig:power1} rozmiar testów to około $0.05$. 
+
+Dla wszystkich testów możemy również przyjąć, że ich rozmiar jest ograniczony przez $\alpha$, zatem są one na poziomie istotności $\alpha=0.05$.
+
+Nie możemy więc jednoznacznie określić, który test jest jednostajnie najmocniejszy, ponieważ nie możemy dostrzec znaczących różnic między nimi. 
+
+
+\section{Zadanie 2}
+
+\subsection{Treść}
+
+Rozważmy próbę $(X_1, ... , X_{100}) $ z rozkładu normalnego $\mathcal{N} \sim (\mu, 4^2)$. Wykonaj wykres funkcji mocy na wybranym przedziale zawierającym przynajmniej po jednym punkcie z hipotezy zerowej i alternatywnej. Jak zmieniła się funkcja mocy testów? Czy w tym przypadku istnieje test jednostajnie najmocniejszy spośród nich?
+
+\subsection{Przedstawienie funkcji mocy na wykresie}
+Na wykresie ponownie przedstawimy funkcję mocy testu dla trzech testów: testu z (przy założeniu $\sigma=2$), testu t-Studenta oraz testu rang znakowanych Wilcoxona w zależności od $\mu$. Wybrany przez nas przedział to ponownie $(1,5)$. Tym razem dane pochodzą z rozkładu normalnego $\mathcal{N} \sim (\mu, 4^2)$.
+<<echo=FALSE, cache=TRUE>>=
+z_test <- function(mu,sigma) {
+  mean(sapply(1:10^4, function(...) {
+    X <- rnorm(100, mu, sigma)
+      z.test(X, mu=3, sigma.x=2, alternative = "less")$p.value < 0.05
+    }))
+}
+z2<-sapply(mu,function(x){z_test(x,4)})
+
+t_test <- function(mu,sigma) {
+  mean(sapply(1:10^4, function(...) {
+    X <- rnorm(100, mu, sigma)
+    t.test(X, mu=3,alternative = "less")$p.value < 0.05
+  }))
+}
+t2<-sapply(mu,function(x){t_test(x,4)})
+
+wilcox_test <- function(mu,sigma) {
+  mean(sapply(1:10^4, function(...) {
+    X <- rnorm(100, mu, sigma)
+    wilcox.test(X, mu=3,alternative="less")$p.value < 0.05
+  }))
+}
+w2<-sapply(mu,function(x){wilcox_test(x,4)})
+
+df2 <- data.frame(z=z2,t=t2,wilcoxon=w2, mu=mu)
+write.csv(df2, file="df2.csv") 
+
+@
+
+
+<<fig.cap="\\label{fig:power2}Wykres funkcji mocy testów w zależności od $\\mu$ dla próby z rozkładu $\\mathcal{N} \\sim \\left(\\mu, 4^2\\right)$ o długości $n=100$ przy $10^4$ krokach Monte Carlo dla $H_0: \\mu = 3$ przeciwko $H_1: \\mu < 3$.">>=
+ggplot(df2)  +
+  geom_line(aes(x=mu,y=z, color="z"), size=0.72) +
+  geom_line(aes(x=mu,y=t, color="t-Studenta"), size=0.72) +
+  geom_line(aes(x=mu,y=wilcoxon, color="Wilcoxona"), size=0.72) +
+  labs(color="Test", x=TeX("$\\mu$"), y="moc") +
+  ggtitle(TeX("Wykres funkcji mocy w zależności od $\\mu$ na przedziale (1,5).")) +
+  geom_vline(xintercept=3, color=color4, size=0.72) +
+  geom_hline(yintercept=0.05, color=color5, size=0.72) +
+  scale_color_manual(values=colors) 
+@
+
+\subsection{Wnioski}
+
+Na podstawie wykresu \ref{fig:power2} zauważamy, że dla testu t-Studenta oraz Wilcoxona możemy wyciągnąć takie same wnioski, jak w zadaniu 1. Oba te testy są nieobciążone, rozmiar testów wynosi około $0.05$ i zachowują one poziom istotności $\alpha=0.05$.
+
+Nie możemy zatem wybrać z tych dwóch testów jednostajnie mocniejszego, ponieważ ponownie nie dostrzegamy znaczących różnic pomiędzy nimi. 
+
+Natomiast test z wypadł na wykresie \ref{fig:power2} znacząco inaczej niż poprzednio. Nie zachowuje on zadanego poziomu istotności $\alpha=0.05$. Jest to spowodowane zignorowaniem założeń, które należało spełnić. Przyjeliśmy $\sigma=2$, kiedy należało przyjąć $\sigma=4$, zgodnie z zadanym rozkładem.
+
+W związku z tym nie bierzemy go pod uwagę w roztrzyganiu, który z testów jest jednostajnie najmocniejszy. 
+
+\section{Zadanie 3}
+
+\subsection{Treść}
+
+Rozważmy próbę $(X_1, ... , X_{100}) $ z rozkładu wykładniczego $\mathcal{E} \sim \left(\frac{1}{\mu}\right)$. Wykonaj wykres funkcji mocy na wybranym przedziale zawierającym przynajmniej po jednym punkcie z hipotezy zerowej i alternatywnej. Jak zmieniła się funkcja mocy testów? Czy w tym przypadku istnieje test jednostajnie najmocniejszy spośród nich?
+
+\subsection{Przedstawienie funkcji mocy na wykresie}
+Na wykresie kolejny raz przedstawimy funkcję mocy testu dla trzech testów: testu z (przy założeniu $\sigma=2$), testu t-Studenta oraz testu rang znakowanych Wilcoxona w zależności od $\mu$. Wybrany przez nas przedział to ponownie $(1,5)$. Tym razem dane pochodzą z rozkładu wykładniczego $\mathcal{E} \sim \left(\frac{1}{\mu}\right)$.
+
+Ponieważ dane pochodzą z rozkładu wykładniczego, a jak wiemy rozkład ten nie jest symetryczny, dlatego test Wilcoxona nie zadziała poprawnie. W związku z tym użyliśmy skorygowanego wariantu, w którym traktujemy test jako test pseudomedian.
+
+<<echo=FALSE, cache=TRUE>>=
+z_test <- function(mu) {
+  mean(sapply(1:10^4, function(...) {
+    X <- rexp(100,1/mu)
+      z.test(X, mu=3, sigma.x=2, alternative = "less")$p.value < 0.05
+    }))
+}
+z3<-sapply(mu,function(x){z_test(x)})
+
+t_test <- function(mu) {
+  mean(sapply(1:10^4, function(...) {
+    X <- rexp(100,1/mu)
+    t.test(X, mu=3, alternative = "less")$p.value < 0.05
+  }))
+}
+t3<-sapply(mu,function(x){t_test(x)})
+
+wilcox_test <- function(mu) {
+  mean(sapply(1:10^4, function(...) {
+    X <- rexp(100,1/mu)
+    wilcox.test(X, mu=qgamma(0.5, 2, 2)*3, alternative="less")$p.value < 0.05
+  }))
+}
+w3<-sapply(mu,function(x){wilcox_test(x)})
+
+df3 <- data.frame(z=z3,t=t3,wilcoxon=w3, mu=mu)
+write.csv(df3, file="df3.csv") 
+
+@
+
+
+<<fig.cap="\\label{fig:power3}Wykres funkcji mocy testów w zależności od $\\mu$ dla próby z rozkładu $\\mathcal{E} \\sim \\left(\\frac{1}{\\mu}\\right)$ o długości $n=100$ przy $10^4$ krokach Monte Carlo dla $H_0: \\mu = 3$ przeciwko $H_1: \\mu < 3$.">>=
+ggplot(df3)  +
+  geom_line(aes(x=mu,y=z, color="z"), size=0.72) +
+  geom_line(aes(x=mu,y=t, color="t-Studenta"), size=0.72) +
+  geom_line(aes(x=mu,y=wilcoxon, color="Wilcoxona"), size=0.72) +
+  labs(color="Test", x=TeX("$\\mu$"), y="moc") +
+  ggtitle(TeX("Wykres funkcji mocy w zależności od $\\mu$ na przedziale (1,5).")) +
+  geom_vline(xintercept=3, color=color4, size=0.72) +
+  geom_hline(yintercept=0.05, color=color5, size=0.72) +
+  scale_color_manual(values=colors) 
+@
+
+\subsection{Wnioski}
+
+Na wykresie \ref{fig:power3} widzimy, że w przypadku, gdy dane pochodzą z rozkładu wykładniczego tylko test Wilcoxsona zachowuje poziom istotności $\alpha=0.05$, a jego rozmiar w przybliżeniu również wynosi $0.05$.
+
+Ponieważ tylko test Wilcoxona spełnia wszystkie wymagania, możemy jednoznacznie stwierdzić, że jest on w tym przypadku jednostajnie najmocniejszy. 
+
+Co ciekawe, na wykresie \ref{fig:power3} możemy zauważyć także, że test t-Studenta jest bardzo blisko spełnienia wymagań, zatem możemy stwierdzić, że jest on mocniejszy niż test z. 
+
+\section{Podsumowanie}
+
+Celem sprawozdania była anliza mocy trzech testów statystycznych oraz aprwdzenie przypadków, w których ich założenia nie zostały spełnione. 
+
+Braliśmy pod uwagę trzy testy: test z, test t-Studenta oraz test rang znakowanych Wilcoxona w trzech różnych sytuacjach. 
+
+Na podstawie przeprowadzonej analizy możemy stwierdzić, że najlepiej wypadł test Wilcoxona, ponieważ za każdym razem zadziałał on poprawnie, a poziom istotności $\alpha=0.05$ został zachowany. 
+
+Warto pamiętać, że działa on jednak poprawnie, tylko dla rozkładów symetrycznych, w innym przypadku należy dokonać korekcji. 
+
+Możemy również zaobserwować, że w przypadku rozkładu wykładniczego testy nie działają poprawnie. Związane jest to z niespełnieniem założeń, które mówią o tym, że próba powinna być z rozkładu normalnego. Podobne wnioski możemy wyciągnąć z zadania drugiego, gdzie nie dotrzymaliśmy założeń testu z, wybierając inną $\sigma$.
+
+Warto pamiętać, że aby testy działały dobrze należy spełnić wszystkie założenia. 
+
+\section{Źródła}
+\begin{enumerate}
+\item \url{https://en.wikipedia.org/wiki/Z-test} \\
+\item \url{http://prac.im.pwr.edu.pl/~giniew/lib/exe/fetch.php?media=rok2122:zimowy:07.pdf}
+\item \url{http://prac.im.pwr.edu.pl/~giniew/lib/exe/fetch.php?media=rok2122:zimowy:08.pdf}
+\item \url{http://prac.im.pwr.edu.pl/~giniew/lib/exe/fetch.php?media=rok2122:zimowy:09.pdf}
+\item \url{http://prac.im.pwr.edu.pl/~giniew/lib/exe/fetch.php?media=rok2122:zimowy:10.pdf}
+\end{enumerate}
+\end{document}

@@ -1,0 +1,217 @@
+% !TeX TXS-program:compile = txs:///knit2pdf
+\documentclass[12pt]{mwart}
+\usepackage[utf8]{inputenc}
+\usepackage[T1,plmath]{polski}
+\usepackage{lmodern}
+\usepackage[colorlinks=true,linkcolor=blue]{hyperref}
+\usepackage[top=2.5cm, bottom=2.5cm, left=2cm, right=2cm]{geometry}
+\author{Olimpia Pozauć, Oliwia Krzemińska}
+\title{Analiza czynników wpływających na sukces wypraw w~Himalaje}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+
+\section{Wprowadzenie i opis danych}
+
+
+<<include=FALSE>>=
+pdf.options(encoding='CP1250')
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(ggmosaic) # do mosaicplot w ggplot2
+dane <- read.csv("members.csv")
+knitr::opts_chunk$set(fig.width=6, fig.height=5,
+                      fig.align='center', fig.path='Figs/',
+                      echo=F, warning=F, message=F)
+color1 <- "#DB8294"
+color2 <- "#E1C8CD"
+color3 <- "#5C363E"
+color4 <- "#A86371"
+@
+
+Raport stanowi analizę danych rzeczywistych dotyczących członków ekspedycji i wypraw wspinaczkowych, które odbyły się w Himalajach. Dane pochodzą ze strony \href{https://www.kaggle.com/majunbajun/himalayan-climbing-expeditions?select=members.csv}{kaggle}. Zgodnie z informacjami na stronie, zostały one opracowane na podstawie archiwów dziennikarki Elizabeth Hawley, uzupełnione informacjami z książek, dzienników i korespondencji z himalaistami. Dane obejmują łącznie wszystkie wyprawy na przestrzeni lat 1905-2019.
+
+W raporcie analizowany jest jeden z trzech plików dostępnych na stronie. Plik \verb|members.csv| zawiera, między innymi, dane dotyczące roku ekspedycji, nazwy szczytów, informacje o pochodzeniu, płci oraz wieku członków wyprawy. 
+
+Sukces dla każdego członka wyprawy rozumiemy jako zdobycie szczytu, a celem naszej analizy jest zbadanie jakie czynniki i w jakim stopniu wpływają na odniesienie sukcesu.  
+
+
+
+\section{Analiza zmiennych}
+<<>>=
+dane <- filter(dane, peak_name=='Everest')
+@
+
+Przeprowadzona anliza dotyczy tylko jednego, najczęściej wybieranego szczytu \verb|Everest|, dla którego jest aż \Sexpr{nrow(dane)} obserwacji. Dla tego szczytu pierwsze dane pochodzą z \Sexpr{min(dane$year)}, a ostatnie z \Sexpr{max(dane$year)} roku. 
+
+<<>>=
+dane <- filter(dane, expedition_role=="Climber")
+dane <- dane %>% select(-c(1,2,3,4,9,11,14,16,17,18,19,20,21))
+@
+
+Ponieważ jako sukces uznajemy w naszym raporcie zdobycie szczytu, analizujemy tylko członków, którym przypisano podczas ekspedycji rolę \verb|'Climber'|. Dla pozostałych członków zespołu, mimo wielkiego wsparcia, celem samym w sobie nie jest prawdopodobnie osiągnięcie wierzchołka góry. Mamy wówczas \Sexpr{nrow(dane)} obserwacji.
+
+Dla przejrzystości usuwamy kolumny, które nie są istotne dla przedstawionego problemu badawczego, są to \verb|expedition_id, member_id, peak_id, peak_name, hired, solo,| \newline \verb|died, death_cause, death_height_metres, injured, injury_type,| \newline \verb|injury_height_metres|.
+
+W raporcie analizujemy następujące zmienne:
+\begin{itemize}
+\item \verb|year| - rok ekspedycji,
+\item \verb|season| - pora roku, w której odbyła się wspinaczka,
+\item \verb|sex| - płeć uczestników,
+\item \verb|age| - wiek uczestników,
+\item \verb|expedition_role| - rola, jaką dany uczestnik ma w grupie,
+\item \verb|highpoint_metres| - najwyższa wysokość, którą osiąga dany uczestnik,
+\item \verb|success| - sukces, czyli zdobycie szczytu,
+\item \verb|oxygen_used| - użycie tlenu.
+\end{itemize}
+
+Jako zmienne ciągłe uznajemy \verb|highpoint_meters|, czyli najwyższą wysokość, jaką udało się osiągnąć danemu himalaiście oraz zmienną \verb|age| oznaczającą wiek wspinacza. 
+
+Pozostałe zmienne to zmienne kategoryczne.
+
+
+\section{Analiza graficzna}
+
+\subsection{Zależność najwyższej osiąganej wysokości od wieku uczestników}
+
+W pierwszej kolejności możemy sprawdzić, czy zachodzi korelacja między wiekiem uczestników wypraw, a najwyższą wysokością, jaką udaje im się osiągnąć. 
+
+<<>>=
+dane_n <- dane %>% filter((! is.na(highpoint_metres)) & (! is.na(age)))
+@
+
+Ponieważ zarówno dane dotyczące wieku uczestników, jak i wysokości, zawierają braki, usuwamy te przypadki. Po usunięciu obserwacji zawierających braki, zostaje do przeanalizowania \Sexpr{nrow(dane_n)} przypadków. 
+
+Korelacja między wiekiem, a najwyższą wysokością, którą osiągają uczestnicy jest równa \Sexpr{round(cor(dane_n$age, dane_n$highpoint_metres),3)}, zatem nie możemy mówić o skorelowaniu tych dwóch zmiennych. Potwierdza to wykres \ref{fig:plot_age_highpoint}. Jest to ciekawy wniosek, świadczący o tym, że to nie wiek wpływa na osiągnięcie wyższych wysokości. 
+
+\subsection{Sukces w kolejnych dekadach}
+
+W celu zbadania ilości sukcesów w kolejnych dekadach, tworzymy dodatkową kolumnę, w której jest zapisana informacja o dekadzie, na podstawie kolumny \verb|year|. 
+
+W danych brakuje informacji na temat wypraw w latach 40-tych, dlatego ta dekada zostaje pominięta. Może to być spowodowane II Wojną Światową, która odbywała się w tych latach. Są to jednak jedynie przypuszczenia.
+
+<<>>=
+decade <- function(x) {
+  if (x < 2000) {
+    floor((x %% 1900)/10)*10 +1900
+  } else {
+    floor((x %% 2000)/10)*10 +2000
+  }
+}
+dane$decade <- sapply(dane$year,decade)
+dane$decade <- as.factor(dane$decade)
+@
+
+W pierwszej kolejności na wykresie \ref{fig:boxplot_decade_highpoint} przedstawiamy boxploty najwyższej osiąganej wysokości w poszczególnych dekadach. 
+
+Następnie zliczamy wszystkie sukcesy w każdej dekadzie. Wykres \ref{fig:bar_decade_success} ilustruje sumę sukcesów dla kolejnych dekad. 
+
+<<>>=
+grouped_success <- dane %>% group_by(decade) %>% mutate(sum_success=sum(success)) %>% select(c(decade, sum_success)) %>% unique
+
+@
+
+Na wykresie \ref{fig:boxplot_decade_highpoint} zauważyć możemy, że wraz z upływem dekad, wspinacze osiągają coraz wyższe wysokości. Dostrzegamy również tendencję wzrostową mediany, oznacza to, że coraz więcej
+osób zbliża się do osiągnięcia sukcesu. 
+
+Wzrost sukcesów obserwujemy również na wykresie \ref{fig:bar_decade_success}.  Wraz z upływem lat pojawiają się  wartości odstające, spowodowane mogą być wzrostem popularności wspinaczki wysokogórskiej, rozwojem technologii oraz wprowadzeniem wypraw komercyjnych. Przez co wspinaczka na Mount Everest stała się dostępna również dla mniej wprawionych wspinaczy, którzy kończyli swoją przygodę na niskich wysokościach.
+
+
+\subsection{Najwyższa osiągana wysokość w zależności od pór roku}
+
+Przeanalizujemy teraz ilość ekspedycji w zależności od pory roku. 
+
+Najbardziej popularną porą roku, którą wybierają ludzie do wspinaczki jest wiosna, co potwierdza wykres \ref{fig:pie_seazon}. Nie jest to zaskoczeniem, ponieważ panują wtedy najbardziej dogodne warunki atmosferyczne.
+
+Analogicznie na wykresie \ref{fig:boxplot_seazon_highpoint} zauważamy, że wiosną ludzie docierają zdecydowanie wyżej niż na przykład zimą, podczas której warunki nie są sprzyjające. Zatem dochodzimy do wniosku, że wybór pory roku w znaczącym stopniu wpływa na sukces całej wyprawy. 
+
+\subsection{Analiza sukcesu w zależności od płci i użycia tlenu}
+
+Kolejną częścią analizy jest zbadanie zależności sukcesu od płci i użycia tlenu. W tym celu generujemy wykres mozaikowy. 
+
+Na podstawie wykresu \ref{fig:mosaic_oxygen} obserwujemy, że wspinacze, którzy odnieśli sukces, w znacznej większości wspomagali się tlenem. Jak możemy zauważyć, kobiet odnoszących sukces jest zdecydowanie mniej niż mężczyzn, ale szczegółowa analiza zależności płci znajduje się w następnym punkcie.
+
+\subsection{Wpływ płci na osiągnięcie sukcesu}
+
+Ostatnim krokiem jest analiza wpływu płci na odniesienie sukcesu. W tym celu sumujemy wszystkie obserwacje, w których odniesiono sukces. Następnie normalizujemy wynik, porównując do ilości wypraw dla każdej płci.  
+
+<<>>=
+grouped_success_2 <- dane %>% group_by(sex) %>% mutate(sum_success=sum(success)/length(sex)) %>% select(c(sex, sum_success)) %>% unique
+@
+
+Na podstawie wykresu \ref{fig:bar_sex_success} zauważamy, że więcej kobiet osiąga sukces, jednak jest to nieznaczna różnica, dlatego nie można wyciągnąć jednoznacznego wniosku czy płeć ma znaczący wpływ. Ciekawe spotrzeżnie jakie nasuwa się analizując ten wykres, to fakt, że niezależnie od płci sukces osiągany jest w mniej niż połowie przypadków.
+
+\section{Wnioski i podsumowanie}
+
+Celem naszego raportu było przeanalizowanie jakie czynniki wpływają na odniesienie sukcesu, czyli zdobycie szczytu Mount Everest. 
+
+Analiza doprowadziła nas do następujących wniosków: płeć oraz wiek
+wspinacza nie są wyznacznikami sukcesu. Potwierdził to znikomy poziom korelacji pomiędzy wiekiem, a najwyższą osiąganą wysokością. Do tej pory można było także zauważyć nieznaczącą różnicę w ilości sukcesów kobiet i mężczyzn, na rzecz kobiet. Jest więc to ciekawe zagadnienie do kolejnych badań, które dotyczyłyby predyspozycji każdej z płci do tego sportu.  
+
+Natomiast szanse na osiągnięcie sukcesu i zdobycie szczytu są z dekady na dekadę coraz większe. Podejrzewać możemy, że jest to zasługa czynników zewnętrznych takich jak postęp technologiczny i łatwa dostępność do informacji, dzięki którym można odpowiednio przygotować się 
+do wyprawy.
+
+Okazuje się również, że wybór pory roku ma kluczowe znaczenie. Najlepszą porą roku do wspinaczki wysokogórskiej okazuje się wiosna. Mimo, że niektórzy wspinacze wybierają również jesień, to najwyższe wysokości i największa szansa na zbliżenie się do szczytu osiągana jest właśnie wiosną.
+
+Kolejnym czynnikiem, który ma wpływ na odniesienie sukcesu jest korzystanie z tlenu podczas wspinaczki. Wspinacze, którzy odnieśli sukces, w znacznej większości wspomagali się tlenem. 
+
+Podsumowując, z każdym rokiem szansa na zdobycie szczytu zwiększa się. Jeśli dodatkowo zdecydujemy się korzystać z tlenu i wybierzemy wspinaczkę wiosną przybliżamy się do sukcesu.
+
+Temat ten nie został jeszcze wyczerpany, oprócz analizy predyspozycji płci do wspinaczki wysokogórskiej, można byłoby rozszerzyć raport na inne szczyty Himalajów i porównać wyniki.
+
+\section{Wykresy}
+
+<<fig.cap="\\label{fig:plot_age_highpoint}Wykres najwyższej osiąganej wysokości w zależności od wieku uczestników.">>=
+ggplot(dane_n, aes(x=age, y=highpoint_metres)) + geom_point(colour=color3) +
+  ggtitle("Wykres najwyższej osiąganej wysokości w zależności od \n wieku uczestników") +
+  xlab("Wiek uczestników") + ylab("Najwyższa osiągana wysokość")
+@
+
+<<fig.cap="\\label{fig:boxplot_decade_highpoint}Wykres pudełkowy najwyższej osiąganej wysokości w zależności od dekad.">>=
+ggplot(dane) + geom_boxplot(aes(x=decade, y=highpoint_metres), colour=color3) +
+  ggtitle("Wykres pudełkowy najwyższej osiąganej wysokości w zależności \n od dekad") +
+  xlab("Dekady") + ylab("Najwyższa osiągana wysokość")
+@
+
+<<fig.cap="\\label{fig:bar_decade_success}Wykres słupkowy sumy sukcesów w zależności od dekad.">>=
+ggplot(grouped_success)+geom_bar(aes(x=decade,y=sum_success),fill=color4,stat='identity') +
+  ggtitle("Wykres słupkowy sumy sukcesów w zależności od dekad") +
+  xlab("Dekady") + ylab("Suma sukcesów")
+@
+
+<<fig.cap="\\label{fig:pie_seazon}Wykres kołowy przedstawiający ilość wypraw w różnych porach roku.">>=
+ggplot(dane, aes(x="", fill=season)) + 
+  geom_bar(color="white") +
+  scale_fill_manual(values=c(color2,color4,color3,color1)) +
+  coord_polar("y", start=pi/2) +
+  ggtitle("Wykres kołowy przedstawiający ilość wypraw w różnych porach roku") +
+  labs(x = NULL, y = NULL, fill = "Pory roku") +
+  theme_void()
+@
+
+<<fig.cap="\\label{fig:boxplot_seazon_highpoint}Wykres pudełkowy najwyższej osiąganej wysokości w zależności od pór roku.">>=
+ggplot(dane) + geom_boxplot(aes(x=season, y=highpoint_metres), colour=color3) + ggtitle("Wykres pudełkowy najwyższej osiąganej wysokości w zależności \n od pór roku") +
+  xlab("Pory roku") + ylab("Najwyższa osiągana wysokość")
+@
+
+<<fig.cap="\\label{fig:mosaic_oxygen}Wykres mozaikowy zależności sukcesu od płci i użycia tlenu.">>=
+ggplot(dane) +
+  geom_mosaic(aes(x = product(oxygen_used, success), fill = sex)) +
+  scale_fill_manual(values=c(color1,color3)) +
+  theme(axis.text.x = element_text(angle = 90)) + 
+  ggtitle("Wykres mozaikowy zależności sukcesu od płci \n i użycia tlenu") +
+  labs(x = NULL, y = NULL, fill = "płeć") +
+  xlab("Płeć:sukces") + ylab("Użycie tlenu")
+@
+
+<<fig.cap="\\label{fig:bar_sex_success}Wykres słupkowy sukcesu w zależności od płci.">>=
+ggplot(grouped_success_2) +
+  geom_bar(aes(x=sex,y=sum_success),fill=color1, stat='identity') +
+  ggtitle("Wykres słupkowy sukcesu w zależności od płci") +
+  xlab("Płeć") + ylab("Suma sukcesów w stosunku do sumy wszystkich wypraw") 
+@
+
+\end{document}
